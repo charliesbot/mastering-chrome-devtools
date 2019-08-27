@@ -8,8 +8,10 @@ let allLogos;
 let count = 10;
 let distance = 3;
 let bodySize = document.body.getBoundingClientRect();
+document.body.style.overflowY = "hidden";
 let logoSize = originalLogo.getBoundingClientRect();
 let maxHeight = Math.floor(bodySize.height - logoSize.height);
+const translations = [];
 
 function init() {
   if (allLogos) {
@@ -22,42 +24,57 @@ function init() {
     document.body.removeChild(originalLogo);
     maxHeight = Math.floor(bodySize.height - logoSize.height);
   }
+
   for (let i = 0; i < count; i++) {
     let newLogo = originalLogo.cloneNode();
     let top = Math.floor(Math.random() * maxHeight);
-    if (top === maxHeight) {
+    if (top >= maxHeight) {
       newLogo.classList.add("up");
     } else {
       newLogo.classList.add("down");
     }
-    newLogo.style.left = i / (count / 97) + "vw";
-    newLogo.style.top = top + "px";
+    const left = i / (count / 97);
+    translations.push({ top, left });
+    newLogo.style.transform = `translate(${left}vw, ${top}px)`;
+    newLogo.style.top = 0;
     document.body.appendChild(newLogo);
   }
 
-  allLogos = document.querySelectorAll(".jank-logo");
+  allLogos = Array.from(document.querySelectorAll(".jank-logo"));
   count = allLogos.length;
 }
 
 function move() {
-  for (let i = 0; i < allLogos.length; i++) {
-    let currentLogo = allLogos[i];
+  allLogos.forEach((currentLogo, index) => {
+    const top = currentLogo.getBoundingClientRect().top;
     let currentLogoPosition = currentLogo.classList.contains("down")
-      ? currentLogo.offsetTop + distance
-      : currentLogo.offsetTop - distance;
-    if (currentLogoPosition < 0) currentLogoPosition = 0;
-    if (currentLogoPosition > maxHeight) currentLogoPosition = maxHeight;
-    currentLogo.style.top = currentLogoPosition + "px";
-    if (currentLogo.offsetTop === 0) {
+      ? top + distance
+      : top - distance;
+
+    if (currentLogoPosition < 0) {
+      currentLogoPosition = 0;
+    }
+
+    if (currentLogoPosition > maxHeight) {
+      currentLogoPosition = maxHeight;
+    }
+
+    translations[index] = { ...translations[index], top: currentLogoPosition };
+  });
+
+  allLogos.forEach((currentLogo, index) => {
+    const translation = translations[index];
+    if (translation.top <= 0) {
       currentLogo.classList.remove("up");
       currentLogo.classList.add("down");
     }
-    if (currentLogo.offsetTop === maxHeight) {
+
+    if (translation.top >= maxHeight) {
       currentLogo.classList.remove("down");
       currentLogo.classList.add("up");
     }
-  }
-
+    currentLogo.style.transform = `translate(${translation.left}vw, ${translation.top}px)`;
+  });
   rAF = window.requestAnimationFrame(move);
 }
 
